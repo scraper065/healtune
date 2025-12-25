@@ -646,8 +646,10 @@ export default function GidaXApp() {
                       galleryScannerRef.current = new Html5Qrcode("gallery-reader");
                     }
                     const result = await galleryScannerRef.current.scanFile(file, true);
+                    console.log('Galeriden barkod okundu:', result);
                     handleScan(result);
-                  } catch {
+                  } catch (err) {
+                    console.log('Galeri barkod okuma hatası:', err);
                     alert('Barkod okunamadı. Elle girin veya kamera ile deneyin.');
                   }
                   e.target.value = '';
@@ -656,16 +658,18 @@ export default function GidaXApp() {
               className="hidden"
             />
             <div id="gallery-reader" style={{display: 'none'}}></div>
+            
+            {/* Büyük Galeriden Seç Butonu */}
             <button
               onClick={() => galleryInputRef.current?.click()}
-              className="w-full p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-400 flex items-center gap-4 transition-all"
+              className="w-full p-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/10 border-2 border-dashed border-purple-500/30 hover:border-purple-400 flex items-center justify-center gap-4 transition-all"
             >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/20 flex items-center justify-center">
-                <Upload className="w-7 h-7 text-purple-400" />
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/20 flex items-center justify-center">
+                <Upload className="w-8 h-8 text-purple-400" />
               </div>
               <div className="text-left">
-                <p className="font-bold text-white">Galeriden Barkod Seç</p>
-                <p className="text-sm text-slate-400">Barkod fotoğrafı yükle</p>
+                <p className="text-lg font-bold text-white">📁 Dosyadan Barkod Seç</p>
+                <p className="text-sm text-slate-400">Bilgisayardan veya galeriden fotoğraf yükle</p>
               </div>
             </button>
 
