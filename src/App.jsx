@@ -224,7 +224,37 @@ export default function GidaXApp() {
   const [favorites, setFavorites] = useState([]);
   const [history, setHistory] = useState([]);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
   const fileInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+
+  // Handle image capture/select
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageAnalyze = () => {
+    if (!capturedImage) return;
+    setIsAnalyzing(true);
+    // Simulate AI analysis - in production this would call Claude API
+    setTimeout(() => {
+      alert('AI görsel analizi yakında aktif olacak! Şimdilik barkod ile arama yapabilirsiniz.');
+      setIsAnalyzing(false);
+    }, 2000);
+  };
+
+  const clearCapturedImage = () => {
+    setCapturedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+  };
 
   // LocalStorage
   useEffect(() => {
@@ -562,18 +592,101 @@ export default function GidaXApp() {
 
             {activeTab === 'camera' && (
               <div className="space-y-4">
-                <div onClick={() => fileInputRef.current?.click()} className="aspect-[4/3] rounded-3xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border-2 border-dashed border-white/10 hover:border-emerald-500/50 cursor-pointer flex flex-col items-center justify-center gap-4">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center"><Camera className="w-10 h-10 text-emerald-400" /></div>
-                    <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center"><Sparkles className="w-4 h-4 text-white" /></div>
-                  </div>
-                  <div className="text-center"><p className="font-semibold">AI Görsel Analizi</p><p className="text-sm text-slate-400 mt-1">Ürün fotoğrafını yükleyin</p></div>
-                  <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" />
-                </div>
+                {!capturedImage ? (
+                  <>
+                    {/* Camera Button */}
+                    <div onClick={() => fileInputRef.current?.click()} className="aspect-[4/3] rounded-3xl bg-gradient-to-br from-slate-800/80 to-slate-800/40 border-2 border-dashed border-white/10 hover:border-emerald-500/50 cursor-pointer flex flex-col items-center justify-center gap-4 transition-all">
+                      <div className="relative">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                          <Camera className="w-10 h-10 text-emerald-400" />
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+                          <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-semibold">Kamera ile Çek</p>
+                        <p className="text-sm text-slate-400 mt-1">Ürün etiketini fotoğraflayın</p>
+                      </div>
+                    </div>
+                    <input 
+                      ref={fileInputRef} 
+                      type="file" 
+                      accept="image/*" 
+                      capture="environment" 
+                      onChange={handleImageChange}
+                      className="hidden" 
+                    />
+
+                    {/* Gallery Button */}
+                    <div onClick={() => galleryInputRef.current?.click()} className="p-4 rounded-2xl bg-slate-800/50 border border-white/10 hover:border-purple-500/50 cursor-pointer flex items-center gap-4 transition-all">
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                        <Upload className="w-7 h-7 text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Galeriden Seç</p>
+                        <p className="text-sm text-slate-400">Kayıtlı fotoğraflardan yükle</p>
+                      </div>
+                    </div>
+                    <input 
+                      ref={galleryInputRef} 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageChange}
+                      className="hidden" 
+                    />
+                  </>
+                ) : (
+                  <>
+                    {/* Image Preview */}
+                    <div className="relative rounded-3xl overflow-hidden border border-white/10">
+                      <img src={capturedImage} alt="Captured" className="w-full aspect-[4/3] object-cover" />
+                      <button 
+                        onClick={clearCapturedImage}
+                        className="absolute top-3 right-3 p-2 rounded-xl bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+
+                    {/* Analyze Button */}
+                    <button 
+                      onClick={handleImageAnalyze}
+                      disabled={isAnalyzing}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold flex items-center justify-center gap-3 disabled:opacity-50 transition-all hover:shadow-lg hover:shadow-emerald-500/20"
+                    >
+                      {isAnalyzing ? (
+                        <><Loader2 className="w-5 h-5 animate-spin" />Analiz Ediliyor...</>
+                      ) : (
+                        <><Sparkles className="w-5 h-5" />AI ile Analiz Et</>
+                      )}
+                    </button>
+
+                    {/* Retake Options */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => { clearCapturedImage(); fileInputRef.current?.click(); }}
+                        className="py-3 rounded-xl bg-slate-800/50 border border-white/10 text-slate-300 font-medium flex items-center justify-center gap-2"
+                      >
+                        <Camera className="w-4 h-4" />Yeniden Çek
+                      </button>
+                      <button 
+                        onClick={() => { clearCapturedImage(); galleryInputRef.current?.click(); }}
+                        className="py-3 rounded-xl bg-slate-800/50 border border-white/10 text-slate-300 font-medium flex items-center justify-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />Başka Seç
+                      </button>
+                    </div>
+                  </>
+                )}
+
                 <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
                   <div className="flex items-start gap-3">
                     <Sparkles className="w-5 h-5 text-cyan-400 flex-shrink-0" />
-                    <div className="text-sm"><p className="font-medium text-cyan-400 mb-1">Claude AI Destekli</p><p className="text-slate-400">Görsel analizi ile ürün etiketini okur.</p></div>
+                    <div className="text-sm">
+                      <p className="font-medium text-cyan-400 mb-1">Claude AI Destekli</p>
+                      <p className="text-slate-400">Görsel analizi ile ürün etiketini otomatik okur.</p>
+                    </div>
                   </div>
                 </div>
               </div>
