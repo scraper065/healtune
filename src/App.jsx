@@ -403,6 +403,7 @@ export default function GidaXApp() {
   };
 
   const handleBarcodeDetected = async (detectedBarcode) => {
+    alert('Barkod okundu: ' + detectedBarcode);
     setShowScanner(false);
     setBarcode(detectedBarcode);
     setIsAnalyzing(true);
