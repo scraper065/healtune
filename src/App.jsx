@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, ScanLine, Search, AlertTriangle, CheckCircle, XCircle, ChevronRight, ChevronDown, Leaf, Heart, ShieldCheck, TrendingUp, Star, Info, X, Loader2, Upload, Zap, Apple, Coffee, Milk, Cookie, Package, AlertCircle, ThumbsUp, ThumbsDown, Flame, Scale, Activity, Clock, Trash2, Share2, Plus, Minus, Sparkles, Target, Utensils, Wheat, Egg, Fish } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import BarcodeScanner from './components/BarcodeScanner';
 import { fetchProductByBarcode, analyzeImageWithClaude } from './services/api';
 
@@ -230,6 +231,7 @@ export default function GidaXApp() {
   const [capturedImage, setCapturedImage] = useState(null);
   const fileInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const galleryScannerRef = useRef(null);
 
   // Handle image capture/select
   const handleImageChange = (e) => {
@@ -403,30 +405,11 @@ export default function GidaXApp() {
     setScanStatus('');
   };
 
-  const handleBarcodeDetected = async (detectedBarcode) => {
-    // Önce scanner'ı kapat ve state'leri güncelle
+  const handleBarcodeDetected = (detectedBarcode) => {
     setShowScanner(false);
-    await new Promise(resolve => setTimeout(resolve, 100));
     setBarcode(detectedBarcode);
-    handleScan(detectedBarcode);
-    setIsAnalyzing(true);
-    setScanStatus('Barkod bulundu! Aranıyor...');
-    
-    try {
-      const offResult = await fetchProductByBarcode(detectedBarcode);
-      if (offResult.success) {
-        const r = analyzeProduct(offResult.product);
-        setResult(r);
-        setShowResult(true);
-        setHistory(prev => [{ id: Date.now(), barcode: detectedBarcode, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
-      } else {
-        alert('Ürün bulunamadı. Fotoğraf çekerek AI analizi yapın.');
-      }
-    } catch (error) {
-      alert('Arama hatası.');
-    }
-    setIsAnalyzing(false);
-    setScanStatus('');
+    // Direkt handleScan'i çağır, o her şeyi halleder
+    setTimeout(() => handleScan(detectedBarcode), 50);
   };
 
   const handleImageCaptured = async (imageBase64) => {
@@ -621,19 +604,55 @@ export default function GidaXApp() {
             {/* Main Scan Button */}
             <button
               onClick={() => setShowScanner(true)}
-              className="w-full aspect-[4/3] rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border-2 border-dashed border-emerald-500/30 hover:border-emerald-400 flex flex-col items-center justify-center gap-4 transition-all"
+              className="w-full aspect-[2/1] rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border-2 border-dashed border-emerald-500/30 hover:border-emerald-400 flex flex-col items-center justify-center gap-4 transition-all"
             >
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/20 flex items-center justify-center">
-                  <Camera className="w-12 h-12 text-emerald-400" />
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/30 to-teal-500/20 flex items-center justify-center">
+                  <Camera className="w-10 h-10 text-emerald-400" />
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                  <ScanLine className="w-5 h-5 text-white" />
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <ScanLine className="w-4 h-4 text-white" />
                 </div>
               </div>
               <div className="text-center">
-                <p className="text-xl font-bold text-white">Ürün Tara</p>
-                <p className="text-sm text-slate-400 mt-1">Barkod okur veya AI ile analiz eder</p>
+                <p className="text-lg font-bold text-white">Kamera ile Tara</p>
+                <p className="text-sm text-slate-400 mt-1">Barkodu kameraya göster</p>
+              </div>
+            </button>
+
+            {/* Gallery Button */}
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  try {
+                    if (!galleryScannerRef.current) {
+                      galleryScannerRef.current = new Html5Qrcode("gallery-reader");
+                    }
+                    const result = await galleryScannerRef.current.scanFile(file, true);
+                    handleScan(result);
+                  } catch {
+                    alert('Barkod okunamadı. Elle girin veya kamera ile deneyin.');
+                  }
+                  e.target.value = '';
+                }
+              }}
+              className="hidden"
+            />
+            <div id="gallery-reader" style={{display: 'none'}}></div>
+            <button
+              onClick={() => galleryInputRef.current?.click()}
+              className="w-full p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-400 flex items-center gap-4 transition-all"
+            >
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/30 to-pink-500/20 flex items-center justify-center">
+                <Upload className="w-7 h-7 text-purple-400" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-white">Galeriden Barkod Seç</p>
+                <p className="text-sm text-slate-400">Barkod fotoğrafı yükle</p>
               </div>
             </button>
 
