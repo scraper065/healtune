@@ -372,25 +372,26 @@ export default function GidaXApp() {
   }, [userProfile]);
 
   // Handlers
-  const handleScan = async () => {
-    if (!barcode.trim()) return;
+  const handleScan = async (barcodeParam) => {
+    const barcodeToScan = barcodeParam || barcode;
+    if (!barcodeToScan.trim()) return;
     setIsAnalyzing(true);
     setScanStatus('Open Food Facts aranıyor...');
     
     try {
-      const offResult = await fetchProductByBarcode(barcode);
+      const offResult = await fetchProductByBarcode(barcodeToScan);
       if (offResult.success) {
         const r = analyzeProduct(offResult.product);
         setResult(r);
         setShowResult(true);
-        setHistory(prev => [{ id: Date.now(), barcode, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
+        setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
       } else {
-        const localProduct = SAMPLE_PRODUCTS[barcode];
+        const localProduct = SAMPLE_PRODUCTS[barcodeToScan];
         if (localProduct) {
           const r = analyzeProduct(localProduct);
           setResult(r);
           setShowResult(true);
-          setHistory(prev => [{ id: Date.now(), barcode, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
+          setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
         } else {
           alert('Ürün bulunamadı. Kamera ile tarayın.');
         }
@@ -403,8 +404,11 @@ export default function GidaXApp() {
   };
 
   const handleBarcodeDetected = async (detectedBarcode) => {
+    // Önce scanner'ı kapat ve state'leri güncelle
     setShowScanner(false);
+    await new Promise(resolve => setTimeout(resolve, 100));
     setBarcode(detectedBarcode);
+    handleScan(detectedBarcode);
     setIsAnalyzing(true);
     setScanStatus('Barkod bulundu! Aranıyor...');
     
