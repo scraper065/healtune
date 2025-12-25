@@ -1,46 +1,60 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { Camera, X, Loader2, ScanLine, Upload, Sparkles } from 'lucide-react';
+import { Camera, X, Loader2, ScanLine, Upload, Sparkles, ImageIcon } from 'lucide-react';
 
 export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onClose }) {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
-  const [mode, setMode] = useState('barcode'); // 'barcode' or 'photo'
+  const [mode, setMode] = useState('barcode');
   const [capturedImage, setCapturedImage] = useState(null);
-  const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (mode === 'barcode') {
+    if (mode === 'barcode' && !capturedImage) {
       startScanner();
     }
     return () => stopScanner();
-  }, [mode]);
+  }, [mode, capturedImage]);
 
   const startScanner = async () => {
     try {
       setError(null);
-      setIsScanning(true);
       
+      // Önce eski scanner'ı temizle
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.stop();
+          html5QrCodeRef.current.clear();
+        } catch (e) {}
+      }
+
       html5QrCodeRef.current = new Html5Qrcode('barcode-reader');
       
+      const config = {
+        fps: 15,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          return { width: Math.floor(minEdge * 0.8), height: Math.floor(minEdge * 0.4) };
+        },
+        aspectRatio: window.innerHeight / window.innerWidth,
+        disableFlip: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
+      };
+
       await html5QrCodeRef.current.start(
         { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 150 },
-          aspectRatio: 1.0
-        },
+        config,
         (decodedText) => {
-          // Barkod bulundu
           stopScanner();
           onBarcodeDetected(decodedText);
         },
-        (errorMessage) => {
-          // Tarama devam ediyor, hata yok
-        }
+        () => {}
       );
+      
+      setIsScanning(true);
     } catch (err) {
       console.error('Scanner error:', err);
       setError('Kamera açılamadı. Lütfen kamera izni verin.');
@@ -49,49 +63,37 @@ export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onC
   };
 
   const stopScanner = async () => {
-    if (html5QrCodeRef.current?.isScanning) {
-      try {
-        await html5QrCodeRef.current.stop();
-      } catch (err) {
-        console.error('Stop error:', err);
-      }
-    }
-    setIsScanning(false);
-  };
-
-  const switchToPhotoMode = async () => {
-    await stopScanner();
-    setMode('photo');
-  };
-
-  const capturePhoto = async () => {
     if (html5QrCodeRef.current) {
       try {
-        // Mevcut kamera görüntüsünü al
-        const canvas = document.createElement('canvas');
-        const video = document.querySelector('#barcode-reader video');
-        if (video) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          canvas.getContext('2d').drawImage(video, 0, 0);
-          const imageData = canvas.toDataURL('image/jpeg', 0.8);
-          setCapturedImage(imageData);
-          await stopScanner();
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
         }
-      } catch (err) {
-        console.error('Capture error:', err);
-      }
+        html5QrCodeRef.current.clear();
+      } catch (err) {}
     }
+    setIsScanning(false);
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCapturedImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+      // Barkod dosyasından okuma dene
+      if (mode === 'barcode' && html5QrCodeRef.current) {
+        html5QrCodeRef.current.scanFile(file, true)
+          .then(decodedText => {
+            onBarcodeDetected(decodedText);
+          })
+          .catch(() => {
+            // Barkod bulunamadı, görsel olarak kaydet
+            const reader = new FileReader();
+            reader.onloadend = () => setCapturedImage(reader.result);
+            reader.readAsDataURL(file);
+          });
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => setCapturedImage(reader.result);
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -101,17 +103,17 @@ export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onC
     }
   };
 
-  const resetCapture = () => {
+  const resetCapture = async () => {
     setCapturedImage(null);
     if (mode === 'barcode') {
-      startScanner();
+      setTimeout(() => startScanner(), 100);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="flex-shrink-0 p-4 bg-gradient-to-b from-black to-transparent absolute top-0 left-0 right-0 z-20">
         <div className="flex items-center justify-between">
           <button onClick={onClose} className="p-2 rounded-full bg-white/10 backdrop-blur-sm">
             <X className="w-6 h-6 text-white" />
@@ -127,7 +129,7 @@ export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onC
               Barkod
             </button>
             <button
-              onClick={switchToPhotoMode}
+              onClick={() => { stopScanner(); setMode('photo'); }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 mode === 'photo' ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white/70'
               }`}
@@ -140,24 +142,40 @@ export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onC
         </div>
       </div>
 
-      {/* Scanner / Preview Area */}
-      <div className="h-full flex flex-col items-center justify-center">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
         {!capturedImage ? (
           <>
             {mode === 'barcode' && (
-              <div className="relative w-full h-full">
-                <div id="barcode-reader" ref={scannerRef} className="w-full h-full" />
+              <div className="flex-1 relative">
+                {/* Scanner Container - Tam ekran */}
+                <div 
+                  id="barcode-reader" 
+                  className="absolute inset-0"
+                  style={{ 
+                    width: '100%', 
+                    height: '100%',
+                  }}
+                />
                 
-                {/* Overlay */}
-                <div className="absolute inset-0 pointer-events-none">
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-40 border-2 border-emerald-400 rounded-xl bg-transparent" 
-                       style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }} />
+                {/* Scanning Overlay */}
+                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                  {/* Corner markers */}
+                  <div className="relative w-72 h-44">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
+                    
+                    {/* Scanning line animation */}
+                    <div className="absolute inset-x-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse" 
+                         style={{ top: '50%', animation: 'scan 2s ease-in-out infinite' }} />
+                  </div>
                 </div>
 
                 {/* Instructions */}
-                <div className="absolute bottom-32 left-0 right-0 text-center">
-                  <p className="text-white/80 text-sm">Barkodu çerçevenin içine hizalayın</p>
+                <div className="absolute bottom-32 left-0 right-0 text-center px-4">
+                  <p className="text-white text-base font-medium">Barkodu çerçevenin içine hizalayın</p>
                   {isScanning && (
                     <div className="flex items-center justify-center gap-2 mt-2 text-emerald-400">
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -166,61 +184,47 @@ export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onC
                   )}
                 </div>
 
-                {/* Photo capture button */}
-                <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4">
+                {/* Bottom buttons */}
+                <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-3 px-4">
                   <button
-                    onClick={capturePhoto}
-                    className="px-6 py-3 rounded-full bg-white/20 backdrop-blur-sm text-white font-medium flex items-center gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 max-w-[200px] py-3 rounded-xl bg-white/20 backdrop-blur-sm text-white font-medium flex items-center justify-center gap-2"
                   >
-                    <Camera className="w-5 h-5" />
-                    Barkod Yok - Fotoğraf Çek
+                    <ImageIcon className="w-5 h-5" />
+                    Galeriden
                   </button>
                 </div>
               </div>
             )}
 
             {mode === 'photo' && (
-              <div className="flex flex-col items-center gap-6 p-8">
+              <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 pt-24">
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-64 h-64 rounded-3xl border-2 border-dashed border-white/30 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-emerald-400 transition-all"
+                  className="w-72 h-72 rounded-3xl border-2 border-dashed border-white/30 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-emerald-400 transition-all bg-white/5"
                 >
                   <Upload className="w-16 h-16 text-white/50" />
-                  <p className="text-white/70 text-center">Galeriden fotoğraf seç<br />veya tıkla</p>
+                  <p className="text-white/70 text-center px-4">Ürün etiketinin fotoğrafını seçin</p>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => setMode('barcode')}
-                  className="px-6 py-3 rounded-full bg-emerald-500 text-white font-medium flex items-center gap-2"
-                >
-                  <Camera className="w-5 h-5" />
-                  Kamera ile Çek
-                </button>
               </div>
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col">
+          <div className="flex-1 flex flex-col pt-20">
             {/* Image Preview */}
             <div className="flex-1 flex items-center justify-center p-4">
               <img 
                 src={capturedImage} 
                 alt="Captured" 
-                className="max-w-full max-h-[60vh] rounded-2xl object-contain"
+                className="max-w-full max-h-[55vh] rounded-2xl object-contain border border-white/10"
               />
             </div>
 
             {/* Actions */}
-            <div className="p-6 space-y-4">
+            <div className="flex-shrink-0 p-4 pb-8 space-y-3 bg-gradient-to-t from-black to-transparent">
               <button
                 onClick={handleAnalyze}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold flex items-center justify-center gap-3"
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/30"
               >
                 <Sparkles className="w-5 h-5" />
                 AI ile Analiz Et
@@ -236,27 +240,59 @@ export default function BarcodeScanner({ onBarcodeDetected, onImageCaptured, onC
                   onClick={() => fileInputRef.current?.click()}
                   className="py-3 rounded-xl bg-white/10 text-white font-medium"
                 >
-                  Galeriden Seç
+                  Başka Seç
                 </button>
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
             </div>
           </div>
         )}
       </div>
 
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
       {/* Error */}
       {error && (
-        <div className="absolute top-20 left-4 right-4 p-4 rounded-xl bg-red-500/90 text-white text-center">
+        <div className="absolute top-20 left-4 right-4 p-4 rounded-xl bg-red-500/90 text-white text-center z-30">
           {error}
         </div>
       )}
+
+      {/* Custom CSS for scan animation */}
+      <style>{`
+        #barcode-reader {
+          border: none !important;
+        }
+        #barcode-reader video {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover !important;
+          border-radius: 0 !important;
+        }
+        #barcode-reader__scan_region {
+          background: transparent !important;
+          min-height: 100% !important;
+        }
+        #barcode-reader__dashboard {
+          display: none !important;
+        }
+        #barcode-reader__scan_region > br {
+          display: none !important;
+        }
+        #barcode-reader img {
+          display: none !important;
+        }
+        @keyframes scan {
+          0%, 100% { transform: translateY(-50px); opacity: 0; }
+          50% { transform: translateY(50px); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
