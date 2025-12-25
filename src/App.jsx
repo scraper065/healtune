@@ -376,18 +376,26 @@ export default function GidaXApp() {
   // Handlers
   const handleScan = async (barcodeParam) => {
     const barcodeToScan = barcodeParam || barcode;
-    if (!barcodeToScan.trim()) return;
+    console.log('5. handleScan başladı, barkod:', barcodeToScan);
+    if (!barcodeToScan.trim()) {
+      console.log('6. HATA: Barkod boş!');
+      return;
+    }
     setIsAnalyzing(true);
     setScanStatus('Open Food Facts aranıyor...');
+    console.log('7. API çağrılıyor...');
     
     try {
       const offResult = await fetchProductByBarcode(barcodeToScan);
+      console.log('8. API sonucu:', offResult);
       if (offResult.success) {
         const r = analyzeProduct(offResult.product);
+        console.log('9. Analiz tamamlandı');
         setResult(r);
         setShowResult(true);
         setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
       } else {
+        console.log('10. API başarısız, local arıyor');
         const localProduct = SAMPLE_PRODUCTS[barcodeToScan];
         if (localProduct) {
           const r = analyzeProduct(localProduct);
@@ -406,10 +414,15 @@ export default function GidaXApp() {
   };
 
   const handleBarcodeDetected = (detectedBarcode) => {
+    console.log('1. Barkod algılandı:', detectedBarcode);
     setShowScanner(false);
+    console.log('2. Scanner kapatıldı');
     setBarcode(detectedBarcode);
-    // Direkt handleScan'i çağır, o her şeyi halleder
-    setTimeout(() => handleScan(detectedBarcode), 50);
+    console.log('3. Barcode state güncellendi');
+    setTimeout(() => {
+      console.log('4. handleScan çağrılıyor');
+      handleScan(detectedBarcode);
+    }, 50);
   };
 
   const handleImageCaptured = async (imageBase64) => {
