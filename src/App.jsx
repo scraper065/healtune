@@ -436,44 +436,47 @@ export default function GidaXApp() {
   // Handlers
   const handleScan = async (barcodeParam) => {
     const barcodeToScan = barcodeParam || barcode;
-    console.log('handleScan başladı, barkod:', barcodeToScan);
+    alert('Aranan barkod: ' + barcodeToScan);
+    
     if (!barcodeToScan || !barcodeToScan.trim()) {
-      console.log('HATA: Barkod boş!');
-      alert('Barkod boş!');
+      alert('HATA: Barkod boş!');
       return;
     }
     setIsAnalyzing(true);
-    setScanStatus('Open Food Facts aranıyor...');
+    setScanStatus('Aranıyor...');
     
+    // Önce local ürünlere bak
+    const localProduct = SAMPLE_PRODUCTS[barcodeToScan];
+    if (localProduct) {
+      alert('Local ürün bulundu: ' + localProduct.name);
+      try {
+        const r = analyzeProduct(localProduct);
+        setResult(r);
+        setShowResult(true);
+        setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
+      } catch (err) {
+        alert('Analiz hatası: ' + err.message);
+      }
+      setIsAnalyzing(false);
+      setScanStatus('');
+      return;
+    }
+    
+    // Local yoksa API'ye bak
     try {
       const offResult = await fetchProductByBarcode(barcodeToScan);
-      console.log('API sonucu:', offResult);
+      alert('API sonucu: ' + JSON.stringify(offResult).substring(0, 100));
       
       if (offResult.success && offResult.product) {
-        console.log('Ürün bulundu:', offResult.product.name);
         const r = analyzeProduct(offResult.product);
-        console.log('Analiz sonucu:', r);
-        if (r && r.product) {
-          setResult(r);
-          setShowResult(true);
-          setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
-        } else {
-          alert('Analiz hatası!');
-        }
+        setResult(r);
+        setShowResult(true);
+        setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
       } else {
-        console.log('API başarısız, local arıyor');
-        const localProduct = SAMPLE_PRODUCTS[barcodeToScan];
-        if (localProduct) {
-          const r = analyzeProduct(localProduct);
-          setResult(r);
-          setShowResult(true);
-          setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
-        } else {
-          alert('Ürün bulunamadı. Kamera ile tarayın.');
-        }
+        alert('Ürün bulunamadı: ' + barcodeToScan);
       }
     } catch (error) {
-      alert('Arama hatası oluştu.');
+      alert('API hatası: ' + error.message);
     }
     setIsAnalyzing(false);
     setScanStatus('');
