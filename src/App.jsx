@@ -376,26 +376,32 @@ export default function GidaXApp() {
   // Handlers
   const handleScan = async (barcodeParam) => {
     const barcodeToScan = barcodeParam || barcode;
-    console.log('5. handleScan başladı, barkod:', barcodeToScan);
-    if (!barcodeToScan.trim()) {
-      console.log('6. HATA: Barkod boş!');
+    console.log('handleScan başladı, barkod:', barcodeToScan);
+    if (!barcodeToScan || !barcodeToScan.trim()) {
+      console.log('HATA: Barkod boş!');
+      alert('Barkod boş!');
       return;
     }
     setIsAnalyzing(true);
     setScanStatus('Open Food Facts aranıyor...');
-    console.log('7. API çağrılıyor...');
     
     try {
       const offResult = await fetchProductByBarcode(barcodeToScan);
-      console.log('8. API sonucu:', offResult);
-      if (offResult.success) {
+      console.log('API sonucu:', offResult);
+      
+      if (offResult.success && offResult.product) {
+        console.log('Ürün bulundu:', offResult.product.name);
         const r = analyzeProduct(offResult.product);
-        console.log('9. Analiz tamamlandı');
-        setResult(r);
-        setShowResult(true);
-        setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
+        console.log('Analiz sonucu:', r);
+        if (r && r.product) {
+          setResult(r);
+          setShowResult(true);
+          setHistory(prev => [{ id: Date.now(), barcode: barcodeToScan, product: r.product, health_score: r.scores.health_score.value, timestamp: new Date().toISOString() }, ...prev.slice(0, 49)]);
+        } else {
+          alert('Analiz hatası!');
+        }
       } else {
-        console.log('10. API başarısız, local arıyor');
+        console.log('API başarısız, local arıyor');
         const localProduct = SAMPLE_PRODUCTS[barcodeToScan];
         if (localProduct) {
           const r = analyzeProduct(localProduct);
