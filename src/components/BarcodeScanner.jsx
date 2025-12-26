@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Quagga from '@ericblade/quagga2';
-import { X, Image, Loader2 } from 'lucide-react';
+import { X, Image, Keyboard } from 'lucide-react';
 
 export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
   const scannerRef = useRef(null);
@@ -41,8 +41,8 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
       }
     }, (err) => {
       if (err) {
-        console.error('Quagga init error:', err);
-        setError('Kamera açılamadı. İzin verin.');
+        console.error("Quagga init error:", err);
+        setError("Kamera açılamadı. İzin verin.");
         return;
       }
       Quagga.start();
@@ -52,7 +52,7 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
     Quagga.onDetected((result) => {
       if (result?.codeResult?.code) {
         const code = result.codeResult.code;
-        console.log('Barkod:', code);
+        console.log("Barkod:", code);
         Quagga.stop();
         onBarcodeDetected(code);
       }
@@ -79,7 +79,7 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
         Quagga.stop();
         onBarcodeDetected(result.codeResult.code);
       } else {
-        const manual = prompt('Barkod okunamadı. Manuel girin:');
+        const manual = prompt("Barkod okunamadı. Manuel girin:");
         if (manual?.trim()) {
           Quagga.stop();
           onBarcodeDetected(manual.trim());
@@ -89,7 +89,7 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
   };
 
   const handleManual = () => {
-    const code = prompt('Barkod numarası:');
+    const code = prompt("Barkod numarasını girin:");
     if (code?.trim()) {
       Quagga.stop();
       onBarcodeDetected(code.trim());
@@ -97,76 +97,77 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      {/* Scanner */}
+    <div className="fixed inset-0 z-50 bg-black">
+      {/* Kamera */}
       <div ref={scannerRef} className="absolute inset-0 w-full h-full">
         <video className="w-full h-full object-cover" />
       </div>
 
       {/* Header */}
-      <div className="relative z-10 p-4 bg-gradient-to-b from-black/80 to-transparent">
+      <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/80 to-transparent">
         <div className="flex items-center justify-between">
           <button onClick={handleClose} className="p-3 rounded-full bg-black/50">
             <X className="w-6 h-6 text-white" />
           </button>
-          <span className="text-white font-bold">Barkod Tara</span>
+          <span className="text-white font-bold text-lg">Barkod Tara</span>
           <div className="w-12" />
         </div>
       </div>
 
-      {/* Frame */}
-      <div className="flex-1 flex items-center justify-center relative z-10 pointer-events-none">
-        <div className="w-72 h-40 border-4 border-emerald-400 rounded-2xl" 
-             style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)' }}>
+      {/* Tarama Çerçevesi */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-72 h-32 border-2 border-emerald-400 rounded-xl relative">
+          <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
+          <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
+          <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
           {scanning && (
-            <div className="absolute inset-x-4 h-1 bg-emerald-400 top-1/2 rounded animate-pulse"
-                 style={{ boxShadow: '0 0 10px #10b981' }} />
+            <div className="absolute inset-x-2 top-1/2 h-0.5 bg-red-500 animate-pulse" 
+                 style={{ boxShadow: '0 0 8px red' }} />
           )}
         </div>
       </div>
 
-      {/* Status */}
-      <div className="relative z-10 text-center mb-4">
-        {scanning ? (
-          <div className="flex items-center justify-center gap-2 text-emerald-400">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Taranıyor...</span>
-          </div>
-        ) : (
-          <span className="text-white/70">Başlatılıyor...</span>
-        )}
-      </div>
+      {/* Alt Metin ve Butonlar */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 bg-gradient-to-t from-black/90 to-transparent">
+        <p className="text-center text-white mb-4">
+          {scanning ? "Barkodu çerçeveye hizalayın" : "Başlatılıyor..."}
+        </p>
 
-      {/* Buttons */}
-      <div className="relative z-10 p-6 bg-gradient-to-t from-black to-transparent space-y-3">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-full py-4 rounded-2xl bg-white/20 text-white font-medium flex items-center justify-center gap-2"
-        >
-          <Image className="w-5 h-5" />
-          Galeriden Seç
-        </button>
-        
-        <button onClick={handleManual} className="w-full py-3 rounded-xl bg-white/10 text-white/70">
-          Manuel Gir
-        </button>
-        
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="absolute top-24 left-4 right-4 p-4 rounded-xl bg-red-500 text-white text-center z-20">
-          {error}
-          <button onClick={handleManual} className="block w-full mt-2 py-2 bg-white/20 rounded-lg">
-            Manuel Gir
+        <div className="flex gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1 py-4 rounded-xl bg-white/20 text-white font-medium flex items-center justify-center gap-2"
+          >
+            <Image className="w-5 h-5" /> Galeri
           </button>
+          <button
+            onClick={handleManual}
+            className="flex-1 py-4 rounded-xl bg-white/20 text-white font-medium flex items-center justify-center gap-2"
+          >
+            <Keyboard className="w-5 h-5" /> Manuel
+          </button>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </div>
+
+      {/* Hata */}
+      {error && (
+        <div className="absolute top-20 left-4 right-4 z-20 p-4 rounded-xl bg-red-500 text-white text-center">
+          {error}
         </div>
       )}
 
       <style>{`
-        #scannerRef video, .drawingBuffer { width: 100% !important; height: 100% !important; object-fit: cover !important; }
-        canvas.drawingBuffer { display: none !important; }
+        #scanner-container video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+        .drawingBuffer { display: none !important; }
       `}</style>
     </div>
   );
