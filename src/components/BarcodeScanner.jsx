@@ -40,7 +40,7 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
           }
         },
         (decodedText) => {
-          console.log("Barkod okundu:", decodedText);
+          alert('SCANNER OKUDU: ' + decodedText);
           stopScanner();
           onBarcodeDetected(decodedText);
         },
@@ -63,7 +63,7 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
             }
           },
           (decodedText) => {
-            console.log("Barkod okundu:", decodedText);
+            alert('SCANNER OKUDU: ' + decodedText);
             stopScanner();
             onBarcodeDetected(decodedText);
           },

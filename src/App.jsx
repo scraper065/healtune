@@ -483,15 +483,10 @@ export default function GidaXApp() {
   };
 
   const handleBarcodeDetected = (detectedBarcode) => {
-    console.log('1. Barkod algılandı:', detectedBarcode);
+    alert('BARKOD OKUNDU: ' + detectedBarcode);
     setShowScanner(false);
-    console.log('2. Scanner kapatıldı');
     setBarcode(detectedBarcode);
-    console.log('3. Barcode state güncellendi');
-    setTimeout(() => {
-      console.log('4. handleScan çağrılıyor');
-      handleScan(detectedBarcode);
-    }, 50);
+    handleScan(detectedBarcode);
   };
 
   const handleImageCaptured = async (imageBase64) => {
