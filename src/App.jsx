@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, ScanLine, Search, AlertTriangle, CheckCircle, XCircle, ChevronRight, ChevronDown, Leaf, Heart, ShieldCheck, TrendingUp, Star, Info, X, Loader2, Upload, Zap, Apple, Coffee, Milk, Cookie, Package, AlertCircle, ThumbsUp, ThumbsDown, Flame, Scale, Activity, Clock, Trash2, Share2, Plus, Minus, Sparkles, Target, Utensils, Wheat, Egg, Fish } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
 import BarcodeScanner from './components/BarcodeScanner';
 import { fetchProductByBarcode, analyzeImageWithClaude } from './services/api';
 
@@ -291,7 +290,6 @@ export default function GidaXApp() {
   const [capturedImage, setCapturedImage] = useState(null);
   const fileInputRef = useRef(null);
   const galleryInputRef = useRef(null);
-  const galleryScannerRef = useRef(null);
 
   // Handle image capture/select
   const handleImageChange = (e) => {
@@ -705,23 +703,36 @@ export default function GidaXApp() {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  try {
-                    if (!galleryScannerRef.current) {
-                      galleryScannerRef.current = new Html5Qrcode("gallery-reader");
-                    }
-                    const result = await galleryScannerRef.current.scanFile(file, true);
-                    console.log('Galeriden barkod okundu:', result);
-                    handleScan(result);
-                  } catch (err) {
-                    console.log('Galeri barkod okuma hatası:', err);
-                    alert('Barkod okunamadı. Elle girin veya kamera ile deneyin.');
+                  // BarcodeDetector ile dene
+                  if ('BarcodeDetector' in window) {
+                    const img = document.createElement('img');
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                      img.src = event.target.result;
+                      img.onload = async () => {
+                        try {
+                          const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+                          const barcodes = await detector.detect(img);
+                          if (barcodes.length > 0) {
+                            handleScan(barcodes[0].rawValue);
+                            return;
+                          }
+                        } catch (err) {}
+                        // Okuyamadıysa manuel sor
+                        const manual = prompt('Barkod okunamadı. Manuel girin:');
+                        if (manual) handleScan(manual.trim());
+                      };
+                    };
+                    reader.readAsDataURL(file);
+                  } else {
+                    const manual = prompt('Bu cihaz otomatik barkod okumayı desteklemiyor. Manuel girin:');
+                    if (manual) handleScan(manual.trim());
                   }
                   e.target.value = '';
                 }
               }}
               className="hidden"
             />
-            <div id="gallery-reader" style={{display: 'none'}}></div>
             
             {/* Büyük Galeriden Seç Butonu */}
             <button
