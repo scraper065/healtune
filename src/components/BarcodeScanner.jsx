@@ -1,167 +1,142 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { X, Loader2, Image, Camera } from 'lucide-react';
+import { X, Loader2, Image } from 'lucide-react';
 
 export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
-  const [isStarting, setIsStarting] = useState(true);
   const [error, setError] = useState(null);
+  const [scanning, setScanning] = useState(false);
   const scannerRef = useRef(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    let mounted = true;
-    
-    const startScanner = async () => {
+    startScanner();
+    return () => stopScanner();
+  }, []);
+
+  const startScanner = async () => {
+    try {
+      scannerRef.current = new Html5Qrcode("reader");
+      
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        setError("Kamera bulunamadı");
+        return;
+      }
+
+      // Arka kamerayı bul
+      const backCamera = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('arka')) || cameras[cameras.length - 1];
+
+      await scannerRef.current.start(
+        backCamera.id,
+        {
+          fps: 15,
+          qrbox: undefined, // Çerçeve yok - tam ekran tarama
+          aspectRatio: window.innerHeight / window.innerWidth,
+          disableFlip: false,
+          videoConstraints: {
+            facingMode: "environment",
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        },
+        (decodedText) => {
+          console.log("Barkod okundu:", decodedText);
+          stopScanner();
+          onBarcodeDetected(decodedText);
+        },
+        () => {}
+      );
+      
+      setScanning(true);
+    } catch (err) {
+      console.error("Scanner error:", err);
+      // Fallback - facingMode ile dene
       try {
-        scannerRef.current = new Html5Qrcode("reader");
-        
         await scannerRef.current.start(
           { facingMode: "environment" },
           {
-            fps: 10,
-            qrbox: { width: 280, height: 160 }
+            fps: 15,
+            qrbox: undefined,
+            videoConstraints: {
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
           },
           (decodedText) => {
-            if (mounted) {
-              scannerRef.current?.stop();
-              onBarcodeDetected(decodedText);
-            }
+            console.log("Barkod okundu:", decodedText);
+            stopScanner();
+            onBarcodeDetected(decodedText);
           },
           () => {}
         );
-        
-        if (mounted) setIsStarting(false);
-      } catch (err) {
-        if (mounted) {
-          setError("Kamera açılamadı");
-          setIsStarting(false);
-        }
+        setScanning(true);
+      } catch (err2) {
+        setError("Kamera açılamadı. İzin verin.");
       }
-    };
+    }
+  };
 
-    startScanner();
-
-    return () => {
-      mounted = false;
-      scannerRef.current?.stop().catch(() => {});
-    };
-  }, [onBarcodeDetected]);
+  const stopScanner = async () => {
+    if (scannerRef.current?.isScanning) {
+      try {
+        await scannerRef.current.stop();
+      } catch (e) {}
+    }
+  };
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+    
     try {
-      const html5QrCode = new Html5Qrcode("reader-file");
-      const result = await html5QrCode.scanFile(file, true);
+      const tempScanner = new Html5Qrcode("reader-temp");
+      const result = await tempScanner.scanFile(file, true);
+      console.log("Dosyadan barkod:", result);
       onBarcodeDetected(result);
     } catch {
-      setError("Barkod okunamadı");
+      alert("Barkod okunamadı. Tekrar deneyin.");
     }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 9999,
-      backgroundColor: '#000',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <div className="fixed inset-0 z-50 bg-black">
+      {/* Kamera - Tam Ekran */}
+      <div id="reader" className="absolute inset-0 w-full h-full" />
+      <div id="reader-temp" className="hidden" />
+
       {/* Header */}
-      <div style={{
-        padding: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10
-      }}>
-        <button 
-          onClick={onClose}
-          style={{
-            padding: '10px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <X color="white" size={24} />
-        </button>
-        <span style={{ color: 'white', fontWeight: 'bold' }}>Barkod Tara</span>
-        <div style={{ width: 44 }} />
-      </div>
-
-      {/* Camera Area */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        <div id="reader" style={{ width: '100%', height: '100%' }} />
-        <div id="reader-file" style={{ display: 'none' }} />
-        
-        {/* Overlay Frame */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            width: 280,
-            height: 160,
-            border: '3px solid #10b981',
-            borderRadius: 16,
-            boxShadow: '0 0 0 9999px rgba(0,0,0,0.5)'
-          }} />
+      <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/70 to-transparent">
+        <div className="flex items-center justify-between">
+          <button onClick={onClose} className="p-3 rounded-full bg-black/50 backdrop-blur">
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <span className="text-white font-semibold">Barkod Tara</span>
+          <div className="w-12" />
         </div>
-
-        {/* Loading */}
-        {isStarting && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.8)'
-          }}>
-            <Loader2 color="#10b981" size={48} className="animate-spin" />
-          </div>
-        )}
       </div>
 
-      {/* Bottom */}
-      <div style={{
-        padding: '24px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
-        textAlign: 'center'
-      }}>
-        <p style={{ color: 'white', marginBottom: 16 }}>
-          Barkodu çerçeveye hizalayın
+      {/* Tarama Çerçevesi - Görsel rehber */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-72 h-36 relative">
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
+        </div>
+      </div>
+
+      {/* Alt Bilgi */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 p-6 bg-gradient-to-t from-black/80 to-transparent">
+        <p className="text-white text-center mb-4">
+          {scanning ? "Barkodu kameraya gösterin" : "Kamera başlatılıyor..."}
         </p>
         
         <button
           onClick={() => fileInputRef.current?.click()}
-          style={{
-            padding: '12px 24px',
-            borderRadius: 12,
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            border: 'none',
-            color: 'white',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8
-          }}
+          className="w-full py-4 rounded-2xl bg-white/20 backdrop-blur text-white font-medium flex items-center justify-center gap-3"
         >
-          <Image size={20} />
-          Galeriden Seç
+          <Image className="w-5 h-5" />
+          Galeriden Fotoğraf Seç
         </button>
         
         <input
@@ -169,40 +144,37 @@ export default function BarcodeScanner({ onBarcodeDetected, onClose }) {
           type="file"
           accept="image/*"
           onChange={handleFileSelect}
-          style={{ display: 'none' }}
+          className="hidden"
         />
       </div>
 
-      {/* Error */}
+      {/* Hata */}
       {error && (
-        <div style={{
-          position: 'absolute',
-          top: 80,
-          left: 16,
-          right: 16,
-          padding: 16,
-          borderRadius: 12,
-          backgroundColor: '#ef4444',
-          color: 'white',
-          textAlign: 'center'
-        }}>
+        <div className="absolute top-24 left-4 right-4 p-4 rounded-xl bg-red-500 text-white text-center z-20">
           {error}
         </div>
       )}
 
+      {/* CSS Override */}
       <style>{`
-        #reader video {
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-        }
         #reader {
           border: none !important;
+          background: black !important;
+        }
+        #reader video {
+          object-fit: cover !important;
+          width: 100% !important;
+          height: 100% !important;
         }
         #reader__scan_region {
           background: transparent !important;
         }
-        #reader__dashboard {
+        #reader__dashboard, 
+        #reader__dashboard_section,
+        #reader__dashboard_section_csr,
+        #reader img[alt="Info icon"],
+        #reader__camera_selection,
+        #reader__filescan_input {
           display: none !important;
         }
       `}</style>

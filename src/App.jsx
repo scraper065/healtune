@@ -119,6 +119,66 @@ const SAMPLE_PRODUCTS = {
     nutrition: { energy: 450, protein: 7.5, carbohydrates: 68, sugar: 18, fat: 16, saturated_fat: 7, fiber: 4.5, salt: 0.8 },
     ingredients: "Buğday unu, şeker, bitkisel yağ, buğday kepeği, yulaf ezmesi, kabartma tozu (E500, E503), tuz, aroma",
     additives: ["E500", "E503"], nova_group: 3, nutri_score: "C"
+  },
+  "8690637204708": {
+    name: "Biskrem", brand: "Ülker", category: "Atıştırmalık", serving_size: "32g", image: null,
+    nutrition: { energy: 502, protein: 5.8, carbohydrates: 63, sugar: 28, fat: 25, saturated_fat: 12, fiber: 2, salt: 0.4 },
+    ingredients: "Buğday unu, şeker, bitkisel yağ, kakao yağı, peynir altı suyu tozu, glukoz şurubu, yağsız kakao, emülgatör (E322), kabartma tozu (E500), tuz, aroma",
+    additives: ["E322", "E500"], nova_group: 4, nutri_score: "E"
+  },
+  "8690526069036": {
+    name: "Tadım Ayçekirdeği", brand: "Tadım", category: "Atıştırmalık", serving_size: "30g", image: null,
+    nutrition: { energy: 580, protein: 21, carbohydrates: 12, sugar: 2, fat: 51, saturated_fat: 5, fiber: 9, salt: 1.2 },
+    ingredients: "Kavrulmuş ayçekirdeği içi, tuz",
+    additives: [], nova_group: 1, nutri_score: "C"
+  },
+  "8690526015101": {
+    name: "Tadım Antep Fıstığı", brand: "Tadım", category: "Atıştırmalık", serving_size: "30g", image: null,
+    nutrition: { energy: 562, protein: 20, carbohydrates: 28, sugar: 8, fat: 45, saturated_fat: 5, fiber: 10, salt: 0.8 },
+    ingredients: "Kavrulmuş Antep fıstığı, tuz",
+    additives: [], nova_group: 1, nutri_score: "B"
+  },
+  "8690637077777": {
+    name: "Torku Banada", brand: "Torku", category: "Atıştırmalık", serving_size: "20g", image: null,
+    nutrition: { energy: 540, protein: 6, carbohydrates: 57, sugar: 52, fat: 32, saturated_fat: 8, fiber: 2, salt: 0.1 },
+    ingredients: "Şeker, bitkisel yağ, fındık (%13), yağsız kakao (%7), yağsız süt tozu, peynir altı suyu tozu, emülgatör (soya lesitini E322), aroma",
+    additives: ["E322"], nova_group: 4, nutri_score: "E"
+  },
+  "8690504058007": {
+    name: "Ülker Çokoprens", brand: "Ülker", category: "Atıştırmalık", serving_size: "30g", image: null,
+    nutrition: { energy: 484, protein: 5.5, carbohydrates: 62, sugar: 35, fat: 24, saturated_fat: 11, fiber: 2.5, salt: 0.4 },
+    ingredients: "Buğday unu, şeker, bitkisel yağ, kakao yağı, glukoz fruktoz şurubu, yağsız kakao, emülgatör (E322), kabartma tozu (E500), tuz, aroma",
+    additives: ["E322", "E500"], nova_group: 4, nutri_score: "E"
+  },
+  "8690637940552": {
+    name: "Dido", brand: "Ülker", category: "Atıştırmalık", serving_size: "35g", image: null,
+    nutrition: { energy: 515, protein: 6.5, carbohydrates: 58, sugar: 42, fat: 28, saturated_fat: 15, fiber: 1.5, salt: 0.3 },
+    ingredients: "Şeker, bitkisel yağ, buğday unu, tam yağlı süt tozu, kakao yağı, kakao kitlesi, peynir altı suyu tozu, emülgatör (E322), aroma",
+    additives: ["E322"], nova_group: 4, nutri_score: "E"
+  },
+  "8690997173430": {
+    name: "Eti Tutku", brand: "Eti", category: "Atıştırmalık", serving_size: "24g", image: null,
+    nutrition: { energy: 487, protein: 5.2, carbohydrates: 66, sugar: 32, fat: 22, saturated_fat: 10, fiber: 2, salt: 0.5 },
+    ingredients: "Buğday unu, şeker, bitkisel yağ, kakao, peynir altı suyu tozu, glukoz şurubu, emülgatör (E322), kabartma tozu (E500), tuz, aroma",
+    additives: ["E322", "E500"], nova_group: 4, nutri_score: "E"
+  },
+  "8690637254703": {
+    name: "Çikolatalı Gofret Albeni", brand: "Ülker", category: "Atıştırmalık", serving_size: "40g", image: null,
+    nutrition: { energy: 498, protein: 5.5, carbohydrates: 60, sugar: 38, fat: 26, saturated_fat: 13, fiber: 2, salt: 0.3 },
+    ingredients: "Şeker, bitkisel yağ, buğday unu, glukoz şurubu, kakao yağı, tam yağlı süt tozu, kakao kitlesi, yağsız kakao, emülgatör (E322), aroma, tuz",
+    additives: ["E322"], nova_group: 4, nutri_score: "E"
+  },
+  "8692971111117": {
+    name: "Ülker İçim Süt", brand: "İçim", category: "Süt Ürünü", serving_size: "200ml", image: null,
+    nutrition: { energy: 62, protein: 3.1, carbohydrates: 4.8, sugar: 4.8, fat: 3.5, saturated_fat: 2.3, fiber: 0, salt: 0.1 },
+    ingredients: "Pastörize inek sütü",
+    additives: [], nova_group: 1, nutri_score: "A"
+  },
+  "8690637788888": {
+    name: "Pınar Ayran", brand: "Pınar", category: "İçecek", serving_size: "250ml", image: null,
+    nutrition: { energy: 35, protein: 1.8, carbohydrates: 2.5, sugar: 2.5, fat: 1.8, saturated_fat: 1.2, fiber: 0, salt: 0.4 },
+    ingredients: "Pastörize inek sütü, su, yoğurt kültürü, tuz",
+    additives: [], nova_group: 1, nutri_score: "A"
   }
 };
 
